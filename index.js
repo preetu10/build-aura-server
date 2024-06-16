@@ -29,6 +29,23 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     await client.connect();
+    const userCol=client.db("buildaura").collection("users");
+
+
+
+    app.post("/users",async (req, res) => {
+        const user=req.body;
+        const query=
+        {email:user.email};
+        const existingUser = await userCol.findOne(query);
+        console.log(user);
+        if(existingUser) {
+            return res.send({message: "User already exists",insertedId: null})
+        }
+       
+        const result=await userCol.insertOne(user);
+        res.send(result);
+    })
   } finally {
 
   }
