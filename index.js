@@ -30,6 +30,7 @@ async function run() {
   try {
     await client.connect();
     const userCol=client.db("buildaura").collection("users");
+    const couponCol=client.db("buildaura").collection("coupons");
 
 
 
@@ -45,6 +46,10 @@ async function run() {
        
         const result=await userCol.insertOne(user);
         res.send(result);
+    })
+    app.get("/coupons",async (req, res) => {
+      const result=await couponCol.find().toArray();;
+      res.send(result);
     })
   } finally {
 
