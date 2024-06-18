@@ -47,6 +47,16 @@ async function run() {
         const result=await userCol.insertOne(user);
         res.send(result);
     })
+    
+    app.get("/users/:email",async(req,res)=>{
+      const email=req.params.email;
+      const query=
+      {email:email};
+      const existingUser = await userCol.findOne(query);
+      console.log(existingUser);
+      res.send(existingUser);
+    })
+
     app.get("/coupons",async (req, res) => {
       const result=await couponCol.find().toArray();;
       res.send(result);
