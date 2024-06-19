@@ -43,13 +43,18 @@ async function run() {
       const user = req.body;
       const query = { email: user.email };
       const existingUser = await userCol.findOne(query);
-      console.log(user);
       if (existingUser) {
         return res.send({ message: "User already exists", insertedId: null });
       }
       const result = await userCol.insertOne(user);
       res.send(result);
     });
+
+    app.post("admin/announcement",async(req,res)=>{
+      const data=req.body;
+      const result=await announcementsCol.insertOne(data);
+      res.send(result);
+    })
 
     app.get("/announcements", async(req, res)=>{
       const sortCriteria = { date: -1 };
