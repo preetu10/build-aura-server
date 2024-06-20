@@ -13,7 +13,7 @@ app.use(
 app.use(express.json());
 const port = process.env.PORT || 5000;
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.fxxuhv1.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 const client = new MongoClient(uri, {
@@ -50,9 +50,27 @@ async function run() {
       res.send(result);
     });
 
-    app.post("admin/announcement",async(req,res)=>{
+    app.post("/admin/announcement",async(req,res)=>{
       const data=req.body;
       const result=await announcementsCol.insertOne(data);
+      res.send(result);
+    })
+
+    app.patch("/admin/delete-member/:id", async(req, res)=>{
+      const id=req.params.id;
+      const query={_id:new ObjectId(id)};
+      const updateDoc = {
+        $set: {
+          role: "user"
+        },
+      };
+      const result = await userCol.updateOne(query, updateDoc);
+      res.send(result);
+    })
+
+    app.get("/members", async(req, res)=>{
+      const query={role:"member"}
+      const result=await userCol.find(query).toArray();
       res.send(result);
     })
 
@@ -69,10 +87,36 @@ async function run() {
       res.send(existingUser);
     });
 
+    app.post("/admin/add-coupon", async (req, res) => {
+      const coupon = req.body;
+      const result = await couponCol.insertOne(coupon);
+      res.send(result);
+    })
+
     app.get("/coupons", async (req, res) => {
+      const query={status:"Available"}
+      const result = await couponCol.find(query).toArray();
+      res.send(result);
+    });
+
+    app.get("/get-all-coupons", async (req, res) => {
       const result = await couponCol.find().toArray();
       res.send(result);
     });
+
+    app.put("/admin/update-coupon", async (req, res) => {
+      const coupon = req.body;
+      //console.log(coupon);
+      const query = { _id: new ObjectId(coupon.id) };
+      const updateDoc = {
+        $set: {
+          status: coupon.status,
+        },
+      };
+      const result = await couponCol.updateOne(query, updateDoc);
+      res.send(result);
+    })
+    
   } finally {
   }
 }
