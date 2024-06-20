@@ -30,6 +30,8 @@ async function run() {
     const userCol = client.db("buildaura").collection("users");
     const couponCol = client.db("buildaura").collection("coupons");
     const announcementsCol = client.db("buildaura").collection("announcements");
+    const apartmentsCol = client.db("buildaura").collection("apartments");
+    const agreementsCol = client.db("buildaura").collection("agreements");
 
     app.post("/jwt", async (req, res) => {
       const user = req.body;
@@ -86,6 +88,29 @@ async function run() {
       const existingUser = await userCol.findOne(query);
       res.send(existingUser);
     });
+
+    app.get("/apartments",async (req, res) => {
+      const result = await apartmentsCol.find().toArray();
+      res.send(result);
+    })
+    app.post("/add-agreement",async (req, res) => {
+      const agreement = req.body;
+      const query = { email: agreement.email };
+      const filter={_id: new ObjectId(agreement.id)};
+      const existingMember = await agreementsCol.findOne(query);
+      if(existingMember){
+        return res.send({ message: "You Are Already A Member", insertedId: null });
+      }
+      const result = await agreementsCol.insertOne(agreement);
+      const updateDoc={
+        $set: {
+          status: "Unavailable"
+        },
+      }
+      const apart = await apartmentsCol.updateOne(filter, updateDoc);
+      console.log(apart);
+      res.send(result);
+    })
 
     app.post("/admin/add-coupon", async (req, res) => {
       const coupon = req.body;
