@@ -43,13 +43,15 @@ async function run() {
 
     //middlewares
     const verifyToken = (req, res, next) => {
-      //console.log("hi", req.headers.authorization);
+      console.log("hi", req.headers.authorization);
       if (!req.headers.authorization) {
+        console.log("hi", req.headers.authorization);
         return res.status(401).send({ message: "Access denied." });
       }
       const token = req.headers.authorization.split(" ")[1];
       jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
         if (err) {
+          //console.log("hi", req.headers.authorization);
           return res.status(401).send({ message: "Access denied." });
         }
         req.decoded = decoded;
@@ -70,8 +72,11 @@ async function run() {
       next();
     };
 
+
+
     // user and member part
     app.post("/users", async (req, res) => {
+      console.log("hi");
       const user = req.body;
       const query = { email: user.email };
       const existingUser = await userCol.findOne(query);
@@ -82,22 +87,41 @@ async function run() {
       res.send(result);
     });
 
-    app.patch(
-      "/admin/delete-member/:id",
+    app.put(
+      "/admin/delete-member",
       verifyToken,
       verifyAdmin,
       async (req, res) => {
-        const id = req.params.id;
-        const query = { _id: new ObjectId(id) };
+        const data = req.body;
+        const query = { email: data.email };
         const updateDoc = {
           $set: {
-            role: "user",
+            email: data.email,
+            name: data.name,
+            image: data.image,
+            role: data.role,
           },
         };
         const result = await userCol.updateOne(query, updateDoc);
+
+        const queryOne={email: data.email};
+        const resultOne = await agreementsCol.findOne(queryOne);
+        const apartId=resultOne.id;
+        //console.log(resultOne);
+       
+        const resultTwo = await agreementsCol.deleteOne(queryOne);
+
+        const updateDocTwo={
+          $set:{
+            status:"Available"
+          }
+        }
+        const getId={_id:new ObjectId(apartId)};
+        const makeAvail=await apartmentsCol.updateOne(getId,updateDocTwo);
         res.send(result);
       }
     );
+
 
     app.get("/members", verifyToken, verifyAdmin, async (req, res) => {
       const query = { role: "member" };
@@ -107,6 +131,7 @@ async function run() {
 
     app.get("/users/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
+      console.log(email,req.decoded.email);
       if (email != req.decoded.email) {
         return res.status(403).send({ message: "Forbidden access." });
       }
@@ -173,6 +198,68 @@ async function run() {
       console.log(apart);
       res.send(result);
     });
+
+    app.get("/requests",verifyToken,verifyAdmin,async(req,res) => {
+      const query={status:"Pending"}
+      const result = await agreementsCol.find(query).toArray();
+      res.send(result);
+    })
+
+    app.put("/admin/update-request",verifyToken,verifyAdmin, async (req, res) => {
+        const data=req.body;
+        const query = { _id: new ObjectId(data._id) };
+        const updateDoc = {
+          $set: {
+            id: data.id,
+            name: data.name,
+            email: data.email,
+            floorNo: data.floorNo,
+            blockName: data.blockName,
+            apartmentNo: data.apartmentNo,
+            requestDate: data.requestDate,
+            acceptDate:data.acceptDate,
+            rent: data.rent,
+            status: data.status
+          },
+        };
+        console.log(updateDoc)
+        const result = await agreementsCol.updateOne(query, updateDoc);
+
+        const queryOne={email:data.email};
+        const findMember=await userCol.findOne(queryOne);
+        const updateDocOne = {
+          $set: {
+            role: "member",
+          },
+        };
+        const resultOne=await userCol.updateOne(queryOne,updateDocOne);
+        res.send(result);
+    })
+
+    app.delete("/admin/delete-request/:id",verifyToken,verifyAdmin,async(req,res)=>{
+      const id=req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const getDocForId=await agreementsCol.findOne(query);
+      const apartId=new ObjectId(getDocForId.id);
+      const queryOne={_id:apartId};
+      const updateDoc={
+        $set:{
+          status:"Available"
+        }
+      }
+      const makeAvail=await apartmentsCol.updateOne(queryOne,updateDoc);
+      const result = await agreementsCol.deleteOne(query);
+      res.send(result);
+    })
+
+    app.get("/get-my-agreement/:email",verifyToken,async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await agreementsCol.findOne(query);
+      res.send(result);
+    })
+
+
 
     // coupon part
     app.post(
