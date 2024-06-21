@@ -27,7 +27,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
     const userCol = client.db("buildaura").collection("users");
     const couponCol = client.db("buildaura").collection("coupons");
     const announcementsCol = client.db("buildaura").collection("announcements");
@@ -439,5 +439,5 @@ async function run() {
 run().catch(console.dir);
 
 app.listen(port, () => {
-  console.log(`server is running on port ${port}`);
+ // console.log(`server is running on port ${port}`);
 });
