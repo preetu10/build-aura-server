@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 app.use(
@@ -129,7 +130,7 @@ async function run() {
 
     app.get("/users/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
-      console.log(email, req.decoded.email);
+      //console.log(email, req.decoded.email);
       if (email != req.decoded.email) {
         return res.status(403).send({ message: "Forbidden access." });
       }
@@ -280,9 +281,9 @@ async function run() {
       const query = { agreementId: id };
       const result = await paymentsCol
         .find(query)
-        .sort({ paidMonthNumber: -1 }) // Sort by createdAt in descending order
+        .sort({ paidMonthNumber: -1 })
         .limit(1)
-        .toArray(); // Limit the result to 1 document
+        .toArray();
       console.log(result);
       res.send(result[0]);
     });
@@ -293,22 +294,88 @@ async function run() {
       res.send(result);
     });
 
+    app.post("/create-payment-intent", async (req, res) => {
+      const { rent } = req.body;
+      console.log(req.body);
+      const amount = parseInt(rent * 100);
+      console.log(amount);
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
+    app.get("/my-payment-history/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await paymentsCol.find(query).toArray();
+      res.send(result);
+    });
+
+    app.get("/search-payment-history/:email", verifyToken, async (req, res) => {
+      const { email } = req.params;
+      const { searchTerm } = req.query;
+
+      const monthNames = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+
+      const userPaymentHistory = await paymentsCol
+        .find({ email: email })
+        .toArray();
+
+      if (searchTerm) {
+        const filteredPayments = userPaymentHistory.filter((payment) => {
+          const paymentMonth =
+            monthNames[payment.paidMonthNumber - 1].toLowerCase();
+          return paymentMonth.includes(searchTerm.toLowerCase());
+        });
+
+        res.send(filteredPayments);
+      } else {
+        res.send(userPaymentHistory);
+      }
+    });
+
     // admin special part
     app.get("/admin", verifyToken, verifyAdmin, async (req, res) => {
       try {
         const totalApartments = await apartmentsCol.find().toArray();
-        const totalAvailableApartments = await apartmentsCol.find({ status: "Available" }).toArray();
-        const totalUnavailableApartments = await apartmentsCol.find({ status: "Unavailable" }).toArray();
+        const totalAvailableApartments = await apartmentsCol
+          .find({ status: "Available" })
+          .toArray();
+        const totalUnavailableApartments = await apartmentsCol
+          .find({ status: "Unavailable" })
+          .toArray();
         const totalMembers = await userCol.find({ role: "member" }).toArray();
         const totalUsers = await userCol.find().toArray();
-    
+
         const totalApartmentCount = totalApartments.length;
         const totalAvailableCount = totalAvailableApartments.length;
         const totalUnavailableCount = totalUnavailableApartments.length;
-    
-        const availablePercentage = (totalAvailableCount / totalApartmentCount) * 100;
-        const unavailablePercentage = (totalUnavailableCount / totalApartmentCount) * 100;
-    
+
+        const availablePercentage =
+          (totalAvailableCount / totalApartmentCount) * 100;
+        const unavailablePercentage =
+          (totalUnavailableCount / totalApartmentCount) * 100;
+
         const result = {
           totalApartment: totalApartmentCount,
           totalAvailableApartment: totalAvailableCount,
@@ -318,7 +385,7 @@ async function run() {
           availablePercentage: availablePercentage.toFixed(2),
           unavailablePercentage: unavailablePercentage.toFixed(2),
         };
-    
+
         //console.log(result);
         res.send(result);
       } catch (error) {
@@ -326,7 +393,6 @@ async function run() {
         res.status(500).send("Internal Server Error");
       }
     });
-    
 
     // coupon part
     app.post(
