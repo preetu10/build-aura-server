@@ -61,7 +61,7 @@ async function run() {
     };
 
     const verifyAdmin = async (req, res, next) => {
-      console.log("entering verifyAdmin")
+      console.log("entering verifyAdmin");
       const email = req.decoded.email;
       const query = { email: email };
       const user = await userCol.findOne(query);
@@ -72,8 +72,6 @@ async function run() {
       }
       next();
     };
-
-
 
     // user and member part
     app.post("/users", async (req, res) => {
@@ -105,24 +103,23 @@ async function run() {
         };
         const result = await userCol.updateOne(query, updateDoc);
 
-        const queryOne={email: data.email};
+        const queryOne = { email: data.email };
         const resultOne = await agreementsCol.findOne(queryOne);
-        const apartId=resultOne.id;
+        const apartId = resultOne.id;
         //console.log(resultOne);
-       
+
         const resultTwo = await agreementsCol.deleteOne(queryOne);
 
-        const updateDocTwo={
-          $set:{
-            status:"Available"
-          }
-        }
-        const getId={_id:new ObjectId(apartId)};
-        const makeAvail=await apartmentsCol.updateOne(getId,updateDocTwo);
+        const updateDocTwo = {
+          $set: {
+            status: "Available",
+          },
+        };
+        const getId = { _id: new ObjectId(apartId) };
+        const makeAvail = await apartmentsCol.updateOne(getId, updateDocTwo);
         res.send(result);
       }
     );
-
 
     app.get("/members", verifyToken, verifyAdmin, async (req, res) => {
       const query = { role: "member" };
@@ -132,7 +129,7 @@ async function run() {
 
     app.get("/users/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
-      console.log(email,req.decoded.email);
+      console.log(email, req.decoded.email);
       if (email != req.decoded.email) {
         return res.status(403).send({ message: "Forbidden access." });
       }
@@ -148,10 +145,9 @@ async function run() {
       }
       const query = { email: email };
       const existingUser = await userCol.findOne(query);
-      let admin=false;
-      if(existingUser)
-        admin=existingUser?.role==="admin";
-      res.send({admin});
+      let admin = false;
+      if (existingUser) admin = existingUser?.role === "admin";
+      res.send({ admin });
     });
 
     // announcements part
@@ -200,14 +196,18 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/requests",verifyToken,verifyAdmin,async(req,res) => {
-      const query={status:"Pending"}
+    app.get("/requests", verifyToken, verifyAdmin, async (req, res) => {
+      const query = { status: "Pending" };
       const result = await agreementsCol.find(query).toArray();
       res.send(result);
-    })
+    });
 
-    app.put("/admin/update-request",verifyToken,verifyAdmin, async (req, res) => {
-        const data=req.body;
+    app.put(
+      "/admin/update-request",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const data = req.body;
         const query = { _id: new ObjectId(data._id) };
         const updateDoc = {
           $set: {
@@ -218,73 +218,115 @@ async function run() {
             blockName: data.blockName,
             apartmentNo: data.apartmentNo,
             requestDate: data.requestDate,
-            acceptDate:data.acceptDate,
+            acceptDate: data.acceptDate,
             rent: data.rent,
-            status: data.status
+            status: data.status,
           },
         };
-        console.log(updateDoc)
+        console.log(updateDoc);
         const result = await agreementsCol.updateOne(query, updateDoc);
 
-        const queryOne={email:data.email};
-        const findMember=await userCol.findOne(queryOne);
+        const queryOne = { email: data.email };
+        const findMember = await userCol.findOne(queryOne);
         const updateDocOne = {
           $set: {
             role: "member",
           },
         };
-        const resultOne=await userCol.updateOne(queryOne,updateDocOne);
+        const resultOne = await userCol.updateOne(queryOne, updateDocOne);
         res.send(result);
-    })
-
-    app.delete("/admin/delete-request/:id",verifyToken,verifyAdmin,async(req,res)=>{
-      const id=req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const getDocForId=await agreementsCol.findOne(query);
-      const apartId=new ObjectId(getDocForId.id);
-      const queryOne={_id:apartId};
-      const updateDoc={
-        $set:{
-          status:"Available"
-        }
       }
-      const makeAvail=await apartmentsCol.updateOne(queryOne,updateDoc);
-      const result = await agreementsCol.deleteOne(query);
-      res.send(result);
-    })
+    );
 
-    app.get("/get-my-agreement/:email",verifyToken,async (req, res) => {
+    app.delete(
+      "/admin/delete-request/:id",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const getDocForId = await agreementsCol.findOne(query);
+        const apartId = new ObjectId(getDocForId.id);
+        const queryOne = { _id: apartId };
+        const updateDoc = {
+          $set: {
+            status: "Available",
+          },
+        };
+        const makeAvail = await apartmentsCol.updateOne(queryOne, updateDoc);
+        const result = await agreementsCol.deleteOne(query);
+        res.send(result);
+      }
+    );
+
+    app.get("/get-my-agreement/:email", verifyToken, async (req, res) => {
       const email = req.params.email;
       const query = { email: email };
       const result = await agreementsCol.findOne(query);
       res.send(result);
-    })
+    });
 
-    app.get("/get-agreement/:id",verifyToken,async (req, res) => {
+    app.get("/get-agreement/:id", verifyToken, async (req, res) => {
       const id = new ObjectId(req.params.id);
       const query = { _id: id };
       const result = await agreementsCol.findOne(query);
       res.send(result);
-    })
+    });
 
     // payment part
-    app.get("/get-payment-info/:id",verifyToken,async (req, res) => {
-      const id=req.params.id;
+    app.get("/get-payment-info/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
 
-      const query={agreementId:id};
-      const result = await paymentsCol.find(query)
-      .sort({ paidMonthNumber: -1 }) // Sort by createdAt in descending order
-      .limit(1).toArray(); // Limit the result to 1 document
+      const query = { agreementId: id };
+      const result = await paymentsCol
+        .find(query)
+        .sort({ paidMonthNumber: -1 }) // Sort by createdAt in descending order
+        .limit(1)
+        .toArray(); // Limit the result to 1 document
       console.log(result);
       res.send(result[0]);
-    })
+    });
 
-    app.post("/add-payment",verifyToken,async (req, res) => {
+    app.post("/add-payment", verifyToken, async (req, res) => {
       const payment = req.body;
       const result = await paymentsCol.insertOne(payment);
       res.send(result);
-    })
+    });
 
+    // admin special part
+    app.get("/admin", verifyToken, verifyAdmin, async (req, res) => {
+      try {
+        const totalApartments = await apartmentsCol.find().toArray();
+        const totalAvailableApartments = await apartmentsCol.find({ status: "Available" }).toArray();
+        const totalUnavailableApartments = await apartmentsCol.find({ status: "Unavailable" }).toArray();
+        const totalMembers = await userCol.find({ role: "member" }).toArray();
+        const totalUsers = await userCol.find().toArray();
+    
+        const totalApartmentCount = totalApartments.length;
+        const totalAvailableCount = totalAvailableApartments.length;
+        const totalUnavailableCount = totalUnavailableApartments.length;
+    
+        const availablePercentage = (totalAvailableCount / totalApartmentCount) * 100;
+        const unavailablePercentage = (totalUnavailableCount / totalApartmentCount) * 100;
+    
+        const result = {
+          totalApartment: totalApartmentCount,
+          totalAvailableApartment: totalAvailableCount,
+          totalUnavailableApartment: totalUnavailableCount,
+          totalMember: totalMembers.length,
+          totalUser: totalUsers.length,
+          availablePercentage: availablePercentage.toFixed(2),
+          unavailablePercentage: unavailablePercentage.toFixed(2),
+        };
+    
+        //console.log(result);
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching admin data:", error);
+        res.status(500).send("Internal Server Error");
+      }
+    });
+    
 
     // coupon part
     app.post(
