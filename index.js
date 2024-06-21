@@ -7,7 +7,7 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const app = express();
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://localhost:5174"],
+    origin: ["http://localhost:5173", "https://localhost:5174","https://buildaura-e28d5.web.app"],
     credentials: true,
   })
 );
