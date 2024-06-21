@@ -32,6 +32,7 @@ async function run() {
     const announcementsCol = client.db("buildaura").collection("announcements");
     const apartmentsCol = client.db("buildaura").collection("apartments");
     const agreementsCol = client.db("buildaura").collection("agreements");
+    const paymentsCol = client.db("buildaura").collection("payments");
 
     app.post("/jwt", async (req, res) => {
       const user = req.body;
@@ -259,6 +260,30 @@ async function run() {
       res.send(result);
     })
 
+    app.get("/get-agreement/:id",verifyToken,async (req, res) => {
+      const id = new ObjectId(req.params.id);
+      const query = { _id: id };
+      const result = await agreementsCol.findOne(query);
+      res.send(result);
+    })
+
+    // payment part
+    app.get("/get-payment-info/:id",verifyToken,async (req, res) => {
+      const id=req.params.id;
+
+      const query={agreementId:id};
+      const result = await paymentsCol.find(query)
+      .sort({ paidMonthNumber: -1 }) // Sort by createdAt in descending order
+      .limit(1).toArray(); // Limit the result to 1 document
+      console.log(result);
+      res.send(result[0]);
+    })
+
+    app.post("/add-payment",verifyToken,async (req, res) => {
+      const payment = req.body;
+      const result = await paymentsCol.insertOne(payment);
+      res.send(result);
+    })
 
 
     // coupon part
