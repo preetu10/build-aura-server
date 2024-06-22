@@ -7,7 +7,12 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const app = express();
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://localhost:5174","https://buildaura-e28d5.web.app"],
+    origin: [
+      "http://localhost:5173",
+      "https://localhost:5174",
+      "https://buildaura-e28d5.web.app",
+      "https://buildaura-e28d5.firebaseapp.com",
+    ],
     credentials: true,
   })
 );
@@ -224,7 +229,7 @@ async function run() {
             status: data.status,
           },
         };
-        console.log(updateDoc);
+        // console.log(updateDoc);
         const result = await agreementsCol.updateOne(query, updateDoc);
 
         const queryOne = { email: data.email };
@@ -284,7 +289,7 @@ async function run() {
         .sort({ paidMonthNumber: -1 })
         .limit(1)
         .toArray();
-      console.log(result);
+      //console.log(result);
       res.send(result[0]);
     });
 
@@ -296,9 +301,9 @@ async function run() {
 
     app.post("/create-payment-intent", async (req, res) => {
       const { rent } = req.body;
-      console.log(req.body);
+      //console.log(req.body);
       const amount = parseInt(rent * 100);
-      console.log(amount);
+      //console.log(amount);
 
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amount,
@@ -439,5 +444,5 @@ async function run() {
 run().catch(console.dir);
 
 app.listen(port, () => {
- // console.log(`server is running on port ${port}`);
+  console.log(`server is running on port ${port}`);
 });
